@@ -90,17 +90,21 @@ ai-health-coordinator/
 ---
 
 ## 🛠️ Tools
-
-### `book_appointment(date_time: str)`
-Books a patient appointment for a specified date and time on Google Calendar.
-
-### `fetch_patient_medications(patient_id: str)`
-Fetches a patient's medication schedule from Cloud Firestore.
-- Looks up the `patients` collection by `patient_id`
-- Returns the `medications` field if found
-
+ 
+### Google ADK — `Agent` & `SequentialAgent`
+The backbone of the multi-agent system. Each agent (`primary_health_coordinator`, `booking_agent`, `medical_agent`) is defined using `google.adk.Agent`, which handles model invocation, instruction-following, and tool dispatch. `SequentialAgent` from `google.adk.agents` is also imported for chaining agent steps when needed.
+ 
+### Google ADK — `MCPToolset` + `StdioConnectionParams`
+Used in `get_calendar_mcp_toolset()` (from `google.adk.tools.mcp_tool`) to connect the `booking_agent` to Google Calendar via the **Model Context Protocol (MCP)**. `StdioConnectionParams` establishes a stdio-based MCP connection, allowing the agent to communicate with external calendar tools as if they were native functions.
+ 
+### Google Cloud Firestore
+Used in `fetch_patient_medications()` via the `google.cloud.firestore` client. The `medical_agent` uses this tool to query the `patients` Firestore collection by `patient_id` and return the stored medication schedule to the patient in plain language.
+ 
+### Gemini (`gemini-2.5-flash`)
+All three agents run on Google's Gemini model, configurable via the `MODEL` environment variable. The default is `gemini-2.5-flash`, chosen for its speed and instruction-following quality in conversational healthcare contexts.
+ 
 ---
-
+ 
 ## 🔧 Configuration
 
 | Environment Variable   | Description                              | Default             |
