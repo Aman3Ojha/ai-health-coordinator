@@ -1,6 +1,11 @@
 # 🏥 AI Health Coordinator
 
 An intelligent, multi-agent healthcare assistant built with **Google ADK** and **Gemini**. It acts as a primary touchpoint for patients — triaging queries and delegating to specialist sub-agents for appointment scheduling and medication management.
+ 
+The system is composed of three agents working in concert:
+- **`primary_health_coordinator`** — the root triage agent that intercepts all patient queries (via WhatsApp or Web) and routes them to the right specialist.
+- **`booking_agent`** — handles appointment booking, rescheduling, and cancellations using Google Calendar via MCP.
+- **`medical_agent`** — retrieves and explains patient medication schedules and lab records from Cloud Firestore, with a tone tailored for elderly patients.
 
 ---
 
