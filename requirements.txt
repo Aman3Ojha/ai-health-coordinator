@@ -1,2 +1,4 @@
 google-adk
 google-cloud-firestore
+requests
+python-dotenv

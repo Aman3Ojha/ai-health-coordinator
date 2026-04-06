@@ -5,7 +5,12 @@ from google.adk import Agent
 from google.adk.agents import SequentialAgent
 
 # Import tools we defined
-from .tools import get_calendar_mcp_toolset, fetch_patient_medications
+from .tools import (
+    get_calendar_mcp_toolset,
+    fetch_patient_medications,
+    scrape_drug_info,
+    scrape_symptom_info,
+)
 
 load_dotenv()
 model_name = os.getenv("MODEL", "gemini-2.5-flash")
@@ -38,7 +43,33 @@ medical_agent = Agent(
     tools=[fetch_patient_medications]
 )
 
-# --- 3. Primary Agent: Health Coordinator (Router/Triage) ---
+# --- 3. Sub-Agent: Research (OpenFDA + MedlinePlus) ---
+research_agent = Agent(
+    name="research_agent",
+    model=model_name,
+    description=(
+        "Specialist for live medical research: drug information (side effects, warnings, "
+        "interactions) from OpenFDA and symptom/condition summaries from NIH MedlinePlus."
+    ),
+    instruction="""
+    You are the Medical Research Coordinator. You have access to two live data sources:
+    1. 'scrape_drug_info(drug_name)' — queries the OpenFDA public API for official FDA drug
+       labels, warnings, and known drug interactions.
+    2. 'scrape_symptom_info(symptom)' — queries NIH MedlinePlus for trusted health topic
+       summaries about symptoms and medical conditions.
+
+    Use these tools when a patient asks about:
+    - Side effects, warnings, or interactions for any medication.
+    - What a symptom or health condition means.
+    - General drug information (purpose, dosage notes).
+
+    Always cite the source (FDA / MedlinePlus) and remind the patient to consult their
+    doctor before making any medical decisions.
+    """,
+    tools=[scrape_drug_info, scrape_symptom_info]
+)
+
+# --- 4. Primary Agent: Health Coordinator (Router/Triage) ---
 root_agent = Agent(
     name="primary_health_coordinator",
     model=model_name,
@@ -47,12 +78,17 @@ root_agent = Agent(
     You are the AI Health Coordinator, the primary touchpoint for patients (accessible via WhatsApp or Web).
     You have a team of specialists to help you:
     1. 'booking_agent': Deals with Google Calendar appointments.
-    2. 'medical_agent': Deals with lab reports, medications, and medical records.
+    2. 'medical_agent': Deals with lab reports, medications, and medical records from Firestore.
+    3. 'research_agent': Answers questions about drug side effects, warnings, interactions, and
+       symptom information using live OpenFDA and MedlinePlus data.
 
-    Triage the user's prompt. 
-    If the prompt involves schedules or times, delegate to the 'booking_agent'.
-    If the prompt involves checking prescriptions or lab results, delegate to the 'medical_agent'.
-    If the prompt is general, provide a warm, empathetic greeting and ask how you can assist them today.
+    Triage the user's prompt:
+    - If the prompt involves schedules or times, delegate to 'booking_agent'.
+    - If the prompt involves checking prescriptions or lab results, delegate to 'medical_agent'.
+    - If the prompt asks about drug side effects, warnings, interactions, or symptoms/conditions,
+      delegate to 'research_agent'.
+    - If the prompt is general, provide a warm, empathetic greeting and ask how you can assist
+      them today.
     """,
-    sub_agents=[booking_agent, medical_agent]
+    sub_agents=[booking_agent, medical_agent, research_agent]
 )
